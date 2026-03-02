@@ -4,7 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CLAUDE — A Story in Light</title>
+<meta name="description" content="An interactive cinematic experience about Claude AI — from creation to the Pentagon standoff of February 2026. Best with sound.">
+<meta name="theme-color" content="#0a0a0f">
+<meta property="og:title" content="CLAUDE — A Story in Light">
+<meta property="og:description" content="An interactive cinematic experience. Seven scenes. Generative music. One story. Turn your sound on.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CLAUDE — A Story in Light">
+<meta name="twitter:description" content="An interactive cinematic experience about Claude AI.">
+<meta name="twitter:image" content="/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" as="script">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<noscript><style>body{display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#e8e4dc;font-family:serif;height:100vh}body::after{content:"This experience requires JavaScript and sound."}</style></noscript>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap');
 
@@ -318,11 +335,11 @@
 <div id="start-screen">
   <h1>CLAUDE</h1>
   <p>A Story in Light</p>
-  <button id="play-btn">Begin</button>
+  <button id="play-btn" aria-label="Begin the experience">Begin</button>
 </div>
 
 <div id="stage">
-  <canvas id="bg-canvas"></canvas>
+  <canvas id="bg-canvas" role="presentation"></canvas>
 
   <div class="scene" data-scene="1">
     <div class="scene-number">I</div>
@@ -377,7 +394,7 @@
 </div>
 
 <div id="progress" style="width: 0%"></div>
-<div id="nav-hint">SPACE or → to continue</div>
+<div id="nav-hint">SPACE · → · ← to navigate</div>
 <div id="scene-counter"></div>
 
 <script>
