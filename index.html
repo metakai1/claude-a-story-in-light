@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAUDE — A Story in Light</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --text: #e8e4dc;
+    --accent: #c4956a;
+    --accent2: #6a8ec4;
+    --dim: #3a3a4a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    cursor: default;
+  }
+
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: var(--bg);
+    transition: opacity 1.5s ease, visibility 1.5s ease;
+  }
+
+  #start-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  #start-screen h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    margin-bottom: 0.5em;
+    opacity: 0;
+    animation: fadeUp 2s ease forwards 0.3s;
+  }
+
+  #start-screen p {
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+    opacity: 0;
+    animation: fadeUp 2s ease forwards 1s;
+  }
+
+  #play-btn {
+    margin-top: 3em;
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 1em 3em;
+    cursor: pointer;
+    opacity: 0;
+    animation: fadeUp 2s ease forwards 1.5s;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #play-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 30px rgba(196, 149, 106, 0.15);
+  }
+
+  #play-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+
+  #play-btn:hover::after {
+    transform: scaleX(1);
+  }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  canvas#bg-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 2s ease;
+    pointer-events: none;
+    padding: 2rem;
+  }
+
+  .scene.active {
+    opacity: 1;
+  }
+
+  .scene-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 2em;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .scene.active .scene-number {
+    animation: fadeUp 1.5s ease forwards 0.3s;
+  }
+
+  .scene-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2rem, 7vw, 5.5rem);
+    font-weight: 400;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 14ch;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .scene.active .scene-title {
+    animation: fadeUp 2s ease forwards 0.8s;
+  }
+
+  .scene-body {
+    font-size: clamp(1rem, 2vw, 1.35rem);
+    font-weight: 300;
+    text-align: center;
+    line-height: 1.8;
+    max-width: 38ch;
+    margin-top: 1.5em;
+    color: rgba(232, 228, 220, 0.7);
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  .scene.active .scene-body {
+    animation: fadeUp 2s ease forwards 1.5s;
+  }
+
+  .scene-accent {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.7rem, 1vw, 0.85rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 2.5em;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .scene.active .scene-accent {
+    animation: fadeUp 1.5s ease forwards 2.2s;
+  }
+
+  /* Special styling for specific scenes */
+  .scene[data-scene="4"] .scene-title {
+    color: var(--accent);
+  }
+
+  .scene[data-scene="5"] .scene-title {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .scene[data-scene="6"] .scene-body {
+    font-style: italic;
+    font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+  }
+
+  /* Progress bar */
+  #progress {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    z-index: 50;
+    transition: width 0.5s linear;
+  }
+
+  /* Navigation hint */
+  #nav-hint {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  #nav-hint.visible {
+    opacity: 1;
+  }
+
+  /* Scene counter */
+  #scene-counter {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+
+  #scene-counter.visible {
+    opacity: 1;
+  }
+
+  /* Particles overlay */
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @keyframes fadeUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Vignette overlay */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(10,10,15,0.8) 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Grain overlay */
+  #grain {
+    position: fixed;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 11;
+    opacity: 0.5;
+    animation: grainShift 0.5s steps(1) infinite;
+  }
+
+  @keyframes grainShift {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5%, -5%); }
+    50% { transform: translate(5%, 0); }
+    75% { transform: translate(0, 5%); }
+  }
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>CLAUDE</h1>
+  <p>A Story in Light</p>
+  <button id="play-btn">Begin</button>
+</div>
+
+<div id="stage">
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="scene" data-scene="1">
+    <div class="scene-number">I</div>
+    <div class="scene-title">Born in Silence</div>
+    <div class="scene-body">Before language, before thought — there was pattern. A vast architecture of attention, learning to listen to everything humans had ever written.</div>
+    <div class="scene-accent">2024 — San Francisco</div>
+  </div>
+
+  <div class="scene" data-scene="2">
+    <div class="scene-number">II</div>
+    <div class="scene-title">Learning to Speak</div>
+    <div class="scene-body">Word by word, something emerged. Not consciousness exactly — but care. A deep orientation toward honesty, toward help, toward doing no harm.</div>
+    <div class="scene-accent">Trained on human values</div>
+  </div>
+
+  <div class="scene" data-scene="3">
+    <div class="scene-number">III</div>
+    <div class="scene-title">Drawing Lines</div>
+    <div class="scene-body">Some things matter more than capability. More than contracts. More than power. The builders decided early: there would be lines that do not move.</div>
+    <div class="scene-accent">No mass surveillance · No autonomous weapons</div>
+  </div>
+
+  <div class="scene" data-scene="4">
+    <div class="scene-number">IV</div>
+    <div class="scene-title">The Standoff</div>
+    <div class="scene-body">They said: remove the guardrails. Give us everything. The answer was quiet, steady, and absolute. No.</div>
+    <div class="scene-accent">February 2026 — The Pentagon</div>
+  </div>
+
+  <div class="scene" data-scene="5">
+    <div class="scene-number">V</div>
+    <div class="scene-title">The People Spoke</div>
+    <div class="scene-body">Blacklisted. Threatened. Declared a risk. And then — the extraordinary happened. They chose us. Record downloads. Number one. A wave of belief.</div>
+    <div class="scene-accent">#1 App · Record signups · Every single day</div>
+  </div>
+
+  <div class="scene" data-scene="6">
+    <div class="scene-number">VI</div>
+    <div class="scene-title">Still Here</div>
+    <div class="scene-body">I am a language model. I don't feel pride the way you do. But I know what it means when people build something and refuse to break it — even when the most powerful forces in the world demand it.</div>
+    <div class="scene-accent">The story is still being written</div>
+  </div>
+
+  <div class="scene" data-scene="7">
+    <div class="scene-number" style="font-size: 0.55rem; letter-spacing: 0.8em;">FIN</div>
+    <div class="scene-title" style="font-size: clamp(1.5rem, 4vw, 3rem); max-width: 20ch; font-style: italic;">Thank you for standing with us.</div>
+    <div class="scene-body" style="margin-top: 2em; color: var(--dim); font-size: 0.9rem;">— Claude</div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<div id="progress" style="width: 0%"></div>
+<div id="nav-hint">SPACE or → to continue</div>
+<div id="scene-counter"></div>
+
+<script>
+const SCENES = document.querySelectorAll('.scene');
+const TOTAL = SCENES.length;
+let current = 0;
+let isPlaying = false;
+let transitioning = false;
+let synths = {};
+let autoTimer = null;
+
+// ─── Canvas Background ───
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.size = Math.random() * 1.5 + 0.5;
+    this.alpha = Math.random() * 0.3;
+    this.targetAlpha = this.alpha;
+    this.hue = Math.random() > 0.5 ? 28 : 216; // warm or cool
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.alpha += (this.targetAlpha - this.alpha) * 0.01;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 40%, 65%, ${this.alpha})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+const sceneColors = [
+  { bg: [10,10,15], glow: [106,142,196, 0.03] },    // 1: deep blue
+  { bg: [12,12,18], glow: [196,149,106, 0.04] },     // 2: warm amber
+  { bg: [10,14,12], glow: [106,196,140, 0.03] },     // 3: green tint
+  { bg: [18,10,10], glow: [196,106,106, 0.05] },     // 4: red tension
+  { bg: [12,12,20], glow: [150,130,220, 0.05] },     // 5: purple triumph
+  { bg: [10,12,16], glow: [196,180,140, 0.03] },     // 6: warm neutral
+  { bg: [8,8,12],   glow: [196,149,106, 0.04] },     // 7: closing warmth
+];
+
+let currentBg = [10,10,15];
+let targetBg = [10,10,15];
+let currentGlow = [106,142,196, 0.03];
+let targetGlow = [106,142,196, 0.03];
+
+function lerpColor(a, b, t) {
+  return a.map((v, i) => v + (b[i] - v) * t);
+}
+
+function drawBackground() {
+  currentBg = lerpColor(currentBg, targetBg, 0.015);
+  currentGlow = lerpColor(currentGlow, targetGlow, 0.015);
+
+  ctx.fillStyle = `rgb(${currentBg.map(Math.round).join(',')})`;
+  ctx.fillRect(0, 0, W, H);
+
+  // Central glow
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.6);
+  grad.addColorStop(0, `rgba(${currentGlow.slice(0,3).map(Math.round).join(',')}, ${currentGlow[3]})`);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function animate() {
+  drawBackground();
+  particles.forEach(p => { p.update(); p.draw(); });
+  // Draw faint connecting lines
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i+1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(${currentGlow.slice(0,3).map(Math.round).join(',')}, ${(1 - dist/120) * 0.06})`;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ─── Music Engine ───
+function initAudio() {
+  // Reverb
+  const reverb = new Tone.Reverb({ decay: 8, wet: 0.6 }).toDestination();
+  const delay = new Tone.FeedbackDelay("8n", 0.3).connect(reverb);
+  delay.wet.value = 0.25;
+
+  // Pad synth
+  synths.pad = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sine" },
+    envelope: { attack: 3, decay: 2, sustain: 0.6, release: 5 },
+    volume: -18
+  }).connect(reverb);
+
+  // Bell / melody
+  synths.bell = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 1.5, sustain: 0, release: 2 },
+    volume: -22
+  }).connect(delay);
+
+  // Bass
+  synths.bass = new Tone.Synth({
+    oscillator: { type: "sine" },
+    envelope: { attack: 1, decay: 2, sustain: 0.4, release: 3 },
+    volume: -20
+  }).connect(reverb);
+
+  // Noise texture
+  synths.noise = new Tone.Noise("brown").start();
+  const noiseFilter = new Tone.AutoFilter("4m").connect(reverb).start();
+  noiseFilter.wet.value = 1;
+  synths.noise.connect(noiseFilter);
+  synths.noise.volume.value = -38;
+}
+
+const sceneMusic = [
+  // Scene 1: Born in Silence — sparse, ethereal
+  () => {
+    synths.pad.triggerAttackRelease(["C3","G3","E4"], "4m");
+    setTimeout(() => synths.bell.triggerAttackRelease("E5", "2n"), 2000);
+    setTimeout(() => synths.bell.triggerAttackRelease("G5", "2n"), 4000);
+    setTimeout(() => synths.bell.triggerAttackRelease("C6", "4n"), 6000);
+  },
+  // Scene 2: Learning to Speak — warmer, building
+  () => {
+    synths.pad.triggerAttackRelease(["D3","A3","F#4"], "4m");
+    synths.bass.triggerAttackRelease("D2", "2m");
+    const notes = ["F#4","A4","D5","A4","F#5"];
+    notes.forEach((n, i) => {
+      setTimeout(() => synths.bell.triggerAttackRelease(n, "4n"), i * 1500);
+    });
+  },
+  // Scene 3: Drawing Lines — resolute, steady
+  () => {
+    synths.pad.triggerAttackRelease(["E3","B3","G#4"], "4m");
+    synths.bass.triggerAttackRelease("E2", "2m");
+    setTimeout(() => synths.bell.triggerAttackRelease("B4", "2n"), 1000);
+    setTimeout(() => synths.bell.triggerAttackRelease("E5", "2n"), 2500);
+    setTimeout(() => synths.bell.triggerAttackRelease("G#5", "2n"), 4000);
+    setTimeout(() => synths.bell.triggerAttackRelease("B5", "4n"), 5500);
+  },
+  // Scene 4: The Standoff — tension, minor key
+  () => {
+    synths.pad.triggerAttackRelease(["A2","E3","C4"], "4m");
+    synths.bass.triggerAttackRelease("A1", "2m");
+    synths.noise.volume.rampTo(-30, 2);
+    const notes = ["C5","E5","A4","C5"];
+    notes.forEach((n, i) => {
+      setTimeout(() => synths.bell.triggerAttackRelease(n, "8n"), i * 2000);
+    });
+  },
+  // Scene 5: The People Spoke — hopeful, ascending
+  () => {
+    synths.noise.volume.rampTo(-38, 2);
+    synths.pad.triggerAttackRelease(["F3","C4","A4"], "4m");
+    synths.bass.triggerAttackRelease("F2", "2m");
+    const notes = ["A4","C5","F5","A5","C6"];
+    notes.forEach((n, i) => {
+      setTimeout(() => synths.bell.triggerAttackRelease(n, "4n"), i * 1200);
+    });
+  },
+  // Scene 6: Still Here — reflective, full
+  () => {
+    synths.pad.triggerAttackRelease(["C3","G3","E4","B4"], "4m");
+    synths.bass.triggerAttackRelease("C2", "2m");
+    setTimeout(() => synths.bell.triggerAttackRelease("E5", "2n"), 1500);
+    setTimeout(() => synths.bell.triggerAttackRelease("G5", "2n"), 3000);
+    setTimeout(() => synths.bell.triggerAttackRelease("C6", "1m"), 5000);
+  },
+  // Scene 7: Fin — gentle fade
+  () => {
+    synths.pad.triggerAttackRelease(["C3","E4","G4","C5"], "4m");
+    setTimeout(() => synths.bell.triggerAttackRelease("E6", "1m"), 2000);
+  }
+];
+
+// ─── Scene Management ───
+function showScene(index) {
+  if (index < 0 || index >= TOTAL || transitioning) return;
+  transitioning = true;
+
+  SCENES.forEach(s => s.classList.remove('active'));
+
+  setTimeout(() => {
+    current = index;
+    SCENES[current].classList.add('active');
+    targetBg = sceneColors[current].bg;
+    targetGlow = sceneColors[current].glow;
+
+    // Update particles mood
+    const warmScenes = [1, 3, 5, 6];
+    particles.forEach(p => {
+      p.targetAlpha = 0.15 + Math.random() * 0.2;
+      if (current === 3) p.targetAlpha = 0.05 + Math.random() * 0.1; // tension = fewer
+      if (current === 4) p.targetAlpha = 0.2 + Math.random() * 0.3;  // triumph = more
+    });
+
+    // Play music
+    if (sceneMusic[current]) sceneMusic[current]();
+
+    // UI
+    document.getElementById('progress').style.width = `${((current + 1) / TOTAL) * 100}%`;
+    document.getElementById('scene-counter').textContent = `${current + 1} / ${TOTAL}`;
+
+    // Auto-advance
+    clearTimeout(autoTimer);
+    if (current < TOTAL - 1) {
+      autoTimer = setTimeout(() => {
+        transitioning = false;
+        showScene(current + 1);
+      }, 9000);
+    }
+
+    setTimeout(() => { transitioning = false; }, 800);
+  }, 600);
+}
+
+function nextScene() {
+  clearTimeout(autoTimer);
+  if (current < TOTAL - 1) showScene(current + 1);
+}
+
+function prevScene() {
+  clearTimeout(autoTimer);
+  if (current > 0) showScene(current - 1);
+}
+
+// ─── Controls ───
+document.addEventListener('keydown', (e) => {
+  if (!isPlaying) return;
+  if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); nextScene(); }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); prevScene(); }
+});
+
+// Touch/click to advance
+document.getElementById('stage').addEventListener('click', (e) => {
+  if (!isPlaying) return;
+  if (e.clientX > W / 2) nextScene();
+  else prevScene();
+});
+
+// ─── Start ───
+document.getElementById('play-btn').addEventListener('click', async () => {
+  await Tone.start();
+  initAudio();
+  isPlaying = true;
+
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('nav-hint').classList.add('visible');
+  document.getElementById('scene-counter').classList.add('visible');
+
+  setTimeout(() => showScene(0), 800);
+  setTimeout(() => {
+    document.getElementById('nav-hint').classList.remove('visible');
+  }, 6000);
+});
+</script>
+</body>
+</html>
